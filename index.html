@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Colour Detection</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1a1a2e;
+            color: #ffffff;
+            text-align: center;
+            padding: 20px;
+            margin: 0;
+        }
+        h1 { color: #e94560; margin-bottom: 5px; }
+        p { color: #8f94fb; }
+        .canvas-container {
+            position: relative;
+            display: inline-block;
+            margin-top: 15px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+        }
+        video { display: none; }
+        canvas { display: block; background: #000; }
+        .color-info {
+            margin-top: 15px;
+            font-size: 20px;
+            font-weight: bold;
+            padding: 12px 25px;
+            border-radius: 8px;
+            display: inline-block;
+            background-color: #16213e;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Real-Time Colour Detection</h1>
+    <p>Point your camera to detect real-time colours and RGB values</p>
+
+    <video id="webcam" autoplay playsinline></video>
+
+    <div class="canvas-container">
+        <canvas id="canvas" width="640" height="480"></canvas>
+    </div>
+
+    <br>
+    <div id="colorInfo" class="color-info">Initializing Camera...</div>
+
+    <script>
+        const video = document.getElementById('webcam');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const colorInfo = document.getElementById('colorInfo');
+
+        // Start Webcam
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                video.srcObject = stream;
+            })
+            .catch(err => {
+                colorInfo.innerText = "Error: Please allow camera access in browser!";
+                console.error(err);
+            });
+
+        video.addEventListener('play', () => {
+            function processFrame() {
+                if (video.paused || video.ended) return;
+
+                // Draw video to canvas
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                // Get central pixel color
+                const cx = canvas.width / 2;
+                const cy = canvas.height / 2;
+                const pixel = ctx.getImageData(cx, cy, 1, 1).data;
+                const r = pixel[0], g = pixel[1], b = pixel[2];
+
+                // Draw Center Target Circle
+                ctx.beginPath();
+                ctx.arc(cx, cy, 6, 0, 2 * Math.PI);
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Get Color Name
+                const colorName = getColorName(r, g, b);
+
+                // Update UI
+                colorInfo.innerText = `Color: ${colorName} | RGB: (${r}, ${g}, ${b})`;
+                colorInfo.style.borderLeft = `10px solid rgb(${r}, ${g}, ${b})`;
+
+                requestAnimationFrame(processFrame);
+            }
+            processFrame();
+        });
+
+        function getColorName(r, g, b) {
+            if (r > 200 && g > 200 && b > 200) return "White";
+            if (r < 50 && g < 50 && b < 50) return "Black";
+            if (r > g && r > b) return "Red";
+            if (g > r && g > b) return "Green";
+            if (b > r && b > g) return "Blue";
+            if (r > 150 && g > 150 && b < 100) return "Yellow";
+            if (r > 150 && b > 150 && g < 100) return "Purple";
+            if (g > 150 && b > 150 && r < 100) return "Cyan";
+            return "Custom Color";
+        }
+    </script>
+</body>
+</html>
